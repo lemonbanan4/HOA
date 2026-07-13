@@ -1,1 +1,25 @@
 @import "tailwindcss";
+
+/* Respect safe areas on devices with notches and status bars */
+#app-sidebar > div:first-child {
+  padding-top: calc(1.25rem + env(safe-area-inset-top)); /* 1.25rem is original p-5 */
+  padding-left: calc(1.25rem + env(safe-area-inset-left));
+  padding-right: calc(1.25rem + env(safe-area-inset-right));
+}
+
+#app-top-header {
+  padding-top: calc(1rem + env(safe-area-inset-top)); /* 1rem is original py-4 */
+  padding-left: calc(1.5rem + env(safe-area-inset-left)); /* 1.5rem is original px-6 */
+  padding-right: calc(1.5rem + env(safe-area-inset-right));
+}
+
+#app-content-pane {
+  padding-bottom: calc(6rem + env(safe-area-inset-bottom)); /* 6rem is original pb-24 */
+  padding-left: calc(1.5rem + env(safe-area-inset-left));
+  padding-right: calc(1.5rem + env(safe-area-inset-right));
+}
+
+#hoa-chatbot-container {
+  bottom: calc(1.5rem + env(safe-area-inset-bottom)); /* 1.5rem is original bottom-6 */
+  right: calc(1.5rem + env(safe-area-inset-right));
+}
