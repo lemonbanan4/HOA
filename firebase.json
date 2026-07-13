@@ -1,0 +1,6 @@
+{
+  "firestore": {
+    "database": "ai-studio-hoatracker-7ce99915-1128-4315-8a0a-7662d69d8678",
+    "rules": "firestore.rules"
+  }
+}

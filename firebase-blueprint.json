@@ -1,0 +1,295 @@
+{
+  "entities": {
+    "User": {
+      "title": "Resident User Profile",
+      "description": "Information about a community resident or board member, defining their role and contact details.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique user ID matching their authenticated account." },
+        "name": { "type": "string", "description": "Full name of the resident." },
+        "email": { "type": "string", "description": "Email address." },
+        "address": { "type": "string", "description": "Property address in the HOA community." },
+        "role": { "type": "string", "enum": ["resident", "board_member"], "description": "Access privileges within the system." },
+        "phone": { "type": "string", "description": "Contact phone number." },
+        "joinedDate": { "type": "string", "format": "date-time", "description": "Date when the resident registered." },
+        "status": { "type": "string", "enum": ["active", "pending", "suspended"], "description": "Account approval status." },
+        "balance": { "type": "number", "description": "Current outstanding HOA dues or fines." }
+      },
+      "required": ["id", "name", "email", "role", "address"]
+    },
+    "Due": {
+      "title": "HOA Dues Ledger",
+      "description": "Records of annual or monthly HOA assessments, dues, and payment statuses.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique record ID." },
+        "residentId": { "type": "string", "description": "Reference to the User ID of the resident." },
+        "residentName": { "type": "string", "description": "Name of the resident for quick rendering." },
+        "residentAddress": { "type": "string", "description": "Address of the resident's home." },
+        "amount": { "type": "number", "description": "Due amount in USD." },
+        "dueDate": { "type": "string", "format": "date", "description": "Payment deadline." },
+        "paidDate": { "type": "string", "format": "date-time", "description": "When the payment was completed." },
+        "status": { "type": "string", "enum": ["unpaid", "paid", "overdue"], "description": "Payment resolution status." },
+        "description": { "type": "string", "description": "Billing description (e.g., 'Q3 2026 Dues')." }
+      },
+      "required": ["id", "residentId", "amount", "dueDate", "status"]
+    },
+    "Violation": {
+      "title": "Community Code Violation",
+      "description": "Logs of HOA rule violations, fine assessments, and progress tracking.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique violation ID." },
+        "residentId": { "type": "string", "description": "Reference to the offending resident's User ID." },
+        "residentName": { "type": "string", "description": "Name of the resident." },
+        "residentAddress": { "type": "string", "description": "Location of violation." },
+        "title": { "type": "string", "description": "Violation type or short summary." },
+        "description": { "type": "string", "description": "Full details of the non-compliant issue." },
+        "reportedDate": { "type": "string", "format": "date", "description": "Date the issue was identified." },
+        "status": { "type": "string", "enum": ["reported", "under_review", "fine_issued", "resolved"], "description": "Current resolution stage." },
+        "fineAmount": { "type": "number", "description": "Assessed fine if applicable." },
+        "evidenceUrl": { "type": "string", "description": "Optional image URL representing the violation." },
+        "notes": { "type": "string", "description": "Board and admin resolution notes." }
+      },
+      "required": ["id", "title", "description", "reportedDate", "status"]
+    },
+    "Document": {
+      "title": "HOA Governing Document",
+      "description": "Official HOA regulations, bylaws, financials, and guidelines.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique document ID." },
+        "title": { "type": "string", "description": "Document name (e.g. Bylaws, Pet Guidelines)." },
+        "description": { "type": "string", "description": "Summary of content." },
+        "category": { "type": "string", "enum": ["bylaws", "financials", "meeting_minutes", "guidelines"], "description": "Classification category." },
+        "fileUrl": { "type": "string", "description": "URL to view or download document." },
+        "uploadDate": { "type": "string", "format": "date", "description": "When the document was added." },
+        "version": { "type": "string", "description": "Current version string." }
+      },
+      "required": ["id", "title", "category", "uploadDate"]
+    },
+    "Communication": {
+      "title": "Resident Announcement or Discussion Forum Post",
+      "description": "General communications including official board announcements and resident discussions.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique post ID." },
+        "authorId": { "type": "string", "description": "User ID of the author." },
+        "authorName": { "type": "string", "description": "Display name of the poster." },
+        "authorRole": { "type": "string", "description": "Role of the poster." },
+        "title": { "type": "string", "description": "Post title." },
+        "content": { "type": "string", "description": "Message content." },
+        "type": { "type": "string", "enum": ["announcement", "discussion"], "description": "Classification of communication." },
+        "date": { "type": "string", "format": "date-time", "description": "Timestamp." },
+        "likes": { "type": "number", "description": "Count of visual thumbs up reactions." },
+        "comments": { "type": "array", "description": "List of comment objects." }
+      },
+      "required": ["id", "authorName", "title", "content", "type", "date"]
+    },
+    "BehavioralLog": {
+      "title": "Community Security and Behavioral Trend Log",
+      "description": "Observation logs submitted for analysis to detect community safety trends or systemic risks.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique log ID." },
+        "submittedBy": { "type": "string", "description": "Resident or board member name who logged it." },
+        "description": { "type": "string", "description": "Detailed report of observations, incidents, or patterns." },
+        "date": { "type": "string", "format": "date-time", "description": "Reporting date." },
+        "analysis": {
+          "type": "object",
+          "description": "AI-generated Cognitive Behavioral and Safety Trend analysis report.",
+          "properties": {
+            "threatLevel": { "type": "string", "enum": ["low", "medium", "high"] },
+            "summary": { "type": "string" },
+            "behavioralAnalysis": { "type": "string" },
+            "securityRecommendations": { "type": "string" },
+            "socialFabricImpact": { "type": "string" }
+          }
+        }
+      },
+      "required": ["id", "submittedBy", "description", "date"]
+    },
+    "Expense": {
+      "title": "HOA Expense Ledger Entry",
+      "description": "Records of community maintenance expenditures and operational costs.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique expense record ID." },
+        "category": { "type": "string", "description": "General expense category (e.g., Landscaping, Repairs)." },
+        "amount": { "type": "number", "description": "Expense amount in USD." },
+        "date": { "type": "string", "format": "date", "description": "Transaction date." },
+        "description": { "type": "string", "description": "Details of what was purchased or funded." }
+      },
+      "required": ["id", "category", "amount", "date", "description"]
+    },
+    "Budget": {
+      "title": "HOA Budget Allocation",
+      "description": "Allocated community budgets by category and fiscal period.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique budget record ID." },
+        "category": { "type": "string", "description": "Budget category matching expense classification." },
+        "allocated": { "type": "number", "description": "Allocated funds in USD." },
+        "period": { "type": "string", "description": "Fiscal period (e.g. Annual 2026)." }
+      },
+      "required": ["id", "category", "allocated", "period"]
+    },
+    "MessageThread": {
+      "title": "Private Resident Communication Thread",
+      "description": "A communication thread linking a specific resident to the board.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The thread ID, which is the resident's ID." },
+        "residentId": { "type": "string", "description": "ID of the resident participating." },
+        "residentName": { "type": "string", "description": "Display name of the resident." },
+        "residentAddress": { "type": "string", "description": "Property address of the resident." },
+        "lastUpdated": { "type": "string", "format": "date-time", "description": "Timestamp of the last message in thread." },
+        "lastMessageSnippet": { "type": "string", "description": "Snippet of the most recent message." }
+      },
+      "required": ["id", "residentId", "residentName", "lastUpdated", "lastMessageSnippet"]
+    },
+    "SecureMessage": {
+      "title": "Encrypted Confidential Message",
+      "description": "Individual messages within a private thread between board and resident.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique message ID." },
+        "threadId": { "type": "string", "description": "The associated MessageThread ID." },
+        "senderId": { "type": "string", "description": "Sender ID." },
+        "senderName": { "type": "string", "description": "Sender full name." },
+        "senderRole": { "type": "string", "enum": ["resident", "board_member"], "description": "Sender privilege role." },
+        "recipientId": { "type": "string", "description": "Recipient ID or 'board'." },
+        "content": { "type": "string", "description": "Encrypted or confidential body content." },
+        "date": { "type": "string", "format": "date-time", "description": "Message timestamp." }
+      },
+      "required": ["id", "threadId", "senderId", "senderName", "senderRole", "recipientId", "content", "date"]
+    },
+    "CommunicationAudit": {
+      "title": "AI Communication and Sentiment Audit Report",
+      "description": "Community-wide aggregate sentiment scanner reports generated by Gemini.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique audit record ID." },
+        "date": { "type": "string", "format": "date-time", "description": "Generation timestamp." },
+        "overallSentiment": { "type": "string", "enum": ["Neutral", "Cooperative", "Tense", "Hostile"], "description": "Aggregate community sentiment." },
+        "identifiedTriggers": { "type": "string", "description": "Identified community friction points and triggers." },
+        "securityRiskAssessment": { "type": "string", "description": "Community security risk analysis." },
+        "boardRemediationPlan": { "type": "array", "description": "Structured steps recommended for board action." },
+        "executiveSummary": { "type": "string", "description": "Detailed executive summary." }
+      },
+      "required": ["date", "overallSentiment", "identifiedTriggers", "securityRiskAssessment", "boardRemediationPlan", "executiveSummary"]
+    },
+    "ACCRequest": {
+      "title": "Architectural Control Committee Application",
+      "description": "Request submitted by a resident to modify their property exterior.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "residentId": { "type": "string" },
+        "residentName": { "type": "string" },
+        "residentAddress": { "type": "string" },
+        "projectType": { "type": "string", "enum": ["painting", "roofing", "landscaping", "deck_patio", "fence", "other"] },
+        "description": { "type": "string" },
+        "materialsDetails": { "type": "string" },
+        "submittedDate": { "type": "string", "format": "date" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "boardNotes": { "type": "string" },
+        "decisionDate": { "type": "string", "format": "date" }
+      },
+      "required": ["id", "residentId", "residentName", "projectType", "description", "submittedDate", "status"]
+    },
+    "WorkOrder": {
+      "title": "Common Area Maintenance Work Order",
+      "description": "Report of a physical issue or repair needed in common areas.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "reportedBy": { "type": "string" },
+        "reporterName": { "type": "string" },
+        "title": { "type": "string" },
+        "location": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string", "enum": ["lighting", "pool", "landscaping", "roads_sidewalks", "clubhouse", "other"] },
+        "submittedDate": { "type": "string", "format": "date" },
+        "status": { "type": "string", "enum": ["submitted", "in_progress", "completed"] },
+        "assignedVendor": { "type": "string" },
+        "completionDate": { "type": "string", "format": "date" }
+      },
+      "required": ["id", "reportedBy", "reporterName", "title", "location", "description", "category", "submittedDate", "status"]
+    },
+    "AmenityBooking": {
+      "title": "Amenity Reservation Booking",
+      "description": "Reservation of common area facilities (e.g. Clubhouse, Pool Lounge).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "residentId": { "type": "string" },
+        "residentName": { "type": "string" },
+        "amenityName": { "type": "string", "enum": ["Clubhouse", "Community Pavilion", "Pool Lounge", "Tennis Court"] },
+        "bookingDate": { "type": "string", "format": "date" },
+        "timeSlot": { "type": "string" },
+        "status": { "type": "string", "enum": ["confirmed", "cancelled"] },
+        "notes": { "type": "string" }
+      },
+      "required": ["id", "residentId", "residentName", "amenityName", "bookingDate", "timeSlot", "status"]
+    }
+  },
+  "firestore": {
+    "users": {
+      "schema": "User",
+      "description": "Resident and board member user directories."
+    },
+    "dues": {
+      "schema": "Due",
+      "description": "Monthly, quarterly, or annual HOA assessment dues records."
+    },
+    "violations": {
+      "schema": "Violation",
+      "description": "Community rule violations, status changes, and fine logs."
+    },
+    "documents": {
+      "schema": "Document",
+      "description": "HOA bylaws, charters, financial statements, and policies."
+    },
+    "communications": {
+      "schema": "Communication",
+      "description": "Official bulletins, discussions, and resident community posts."
+    },
+    "behavioralLogs": {
+      "schema": "BehavioralLog",
+      "description": "Security incident logs analyzed for behavioral trends."
+    },
+    "expenses": {
+      "schema": "Expense",
+      "description": "Maintenance expenditures, vendor contract disbursements, and operations."
+    },
+    "budgets": {
+      "schema": "Budget",
+      "description": "Allocated community budgets for landscaping, pool, repairs, and administration."
+    },
+    "messageThreads": {
+      "schema": "MessageThread",
+      "description": "Private communication channels between individual residents and board members."
+    },
+    "secureMessages": {
+      "schema": "SecureMessage",
+      "description": "Confidential, encrypted message histories inside secure resident threads."
+    },
+    "communicationAudits": {
+      "schema": "CommunicationAudit",
+      "description": "Systemic safety assessments and aggregate sentiment audits generated by AI."
+    },
+    "accRequests": {
+      "schema": "ACCRequest",
+      "description": "Architectural modification requests filed by residents for board review."
+    },
+    "workOrders": {
+      "schema": "WorkOrder",
+      "description": "Common area maintenance work orders tracked for transparency."
+    },
+    "amenityBookings": {
+      "schema": "AmenityBooking",
+      "description": "Resident reservations for Clubhouse, Pavilion, Pool and Courts."
+    }
+  }
+}
