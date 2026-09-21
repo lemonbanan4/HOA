@@ -17,12 +17,13 @@ const PRESET_EVIDENCE_IMAGES = [
 
 export default function ViolationsLog({ activeUser }: ViolationsLogProps) {
   const [violationsList, setViolationsList] = useState<Violation[]>([]);
+  const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [filterStatus, setFilterStatus] = useState<"all" | "reported" | "under_review" | "fine_issued" | "resolved">("all");
 
   // New Violation Form State (Board Member only)
   const [showAddForm, setShowAddForm] = useState(false);
-  const [targetResidentId, setTargetResidentId] = useState("user_john");
+  const [targetResidentId, setTargetResidentId] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [fineAmount, setFineAmount] = useState(0);
@@ -36,21 +37,42 @@ export default function ViolationsLog({ activeUser }: ViolationsLogProps) {
   const [viewingViolation, setViewingViolation] = useState<Violation | null>(null);
   const [boardNote, setBoardNote] = useState("");
 
-  // Real-time listener for violations
+  // Real-time listener for violations and users
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, "violations"), (snap) => {
+    const unsubViolations = onSnapshot(collection(db, "violations"), (snap) => {
       const data: Violation[] = [];
       snap.forEach((doc) => {
         data.push({ id: doc.id, ...doc.data() } as Violation);
       });
       setViolationsList(data);
     });
-    return unsub;
+
+    const unsubUsers = onSnapshot(collection(db, "users"), (snap) => {
+      const uList: UserProfile[] = [];
+      snap.forEach((doc) => {
+        const u = { id: doc.id, ...doc.data() } as UserProfile;
+        if (u.status === "active") {
+          uList.push(u);
+        }
+      });
+      setAllUsers(uList);
+      if (uList.length > 0) {
+        setTargetResidentId((prev) => prev || uList[0].id);
+      }
+    });
+
+    return () => {
+      unsubViolations();
+      unsubUsers();
+    };
   }, []);
 
   // Filter based on active session & status filter
   const displayedViolations = violationsList.filter((v) => {
-    const matchesUser = activeUser.role === "board_member" || v.residentId === activeUser.id;
+    const matchesUser = 
+      activeUser.role === "board_member" || 
+      v.residentId === activeUser.id ||
+      (activeUser.email && (v as any).residentEmail === activeUser.email);
     const matchesStatus = filterStatus === "all" || v.status === filterStatus;
     return matchesUser && matchesStatus;
   });
@@ -62,23 +84,12 @@ export default function ViolationsLog({ activeUser }: ViolationsLogProps) {
 
     try {
       setLoading(true);
-      const residentNames: Record<string, string> = {
-        user_john: "John Smith",
-        user_clara: "Clara Barton",
-        user_sophie: "Sophie Germain",
-        user_marcus: "Marcus Aurelius"
-      };
-      const residentAddresses: Record<string, string> = {
-        user_john: "204 Pine Needles Lane",
-        user_clara: "305 Red Cross Circle",
-        user_sophie: "412 Prime Avenue",
-        user_marcus: "101 Emperor Way"
-      };
+      const targetUser = allUsers.find((u) => u.id === targetResidentId);
 
       const newViolation = {
         residentId: targetResidentId,
-        residentName: residentNames[targetResidentId] || "Resident",
-        residentAddress: residentAddresses[targetResidentId] || "Community Block",
+        residentName: targetUser?.name || "Resident",
+        residentAddress: targetUser?.address || "Community Lot",
         title,
         description,
         fineAmount: Number(fineAmount),
@@ -191,9 +202,11 @@ export default function ViolationsLog({ activeUser }: ViolationsLogProps) {
                   onChange={(e) => setTargetResidentId(e.target.value)}
                   className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800"
                 >
-                  <option value="user_john">John Smith (204 Pine Needles Lane)</option>
-                  <option value="user_clara">Clara Barton (305 Red Cross Circle)</option>
-                  <option value="user_sophie">Sophie Germain (412 Prime Avenue)</option>
+                  {allUsers.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name} ({u.address || u.email})
+                    </option>
+                  ))}
                 </select>
               </div>
 

@@ -1,4 +1,4 @@
-package com.hoatracker.app;
+package com.cogcore.boardvault;
 
 import com.getcapacitor.BridgeActivity;
 

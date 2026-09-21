@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.hoatracker.app',
-  appName: 'HOA Tracker',
+  appId: 'com.cogcore.boardvault',
+  appName: 'BoardVault',
   webDir: 'dist'
 };
 

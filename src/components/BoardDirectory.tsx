@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { UserProfile } from "../types";
-import { collection, doc, setDoc, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, onSnapshot, doc, setDoc, addDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { 
   Users, Mail, Phone, Calendar, Shield, MessageSquare, Send, Check, Info, AlertCircle 
@@ -11,55 +11,78 @@ interface BoardDirectoryProps {
   onNavigateToMessages: () => void;
 }
 
-const BOARD_MEMBERS = [
-  {
-    name: "Marcus Aurelius",
-    role: "HOA Board President",
-    email: "marcus.board@hoa-tracker.com",
-    phone: "(555) 123-4567",
-    address: "101 Emperor Way",
+interface BoardMemberInfo {
+  id: string;
+  name: string;
+  roleTitle: string;
+  email: string;
+  phone: string;
+  address: string;
+  term: string;
+  responsibilities: string;
+  avatar: string;
+}
+
+const DEFAULT_BOARD_ROLES: Record<string, { roleTitle: string; term: string; responsibilities: string }> = {
+  "marcus.board@hoa-tracker.com": {
+    roleTitle: "HOA Board President",
     term: "2024 - 2027",
-    responsibilities: "Strategic oversight, community development, budget sign-offs, and general association representations.",
-    avatar: "M"
+    responsibilities: "Strategic oversight, community development, budget sign-offs, and general association representations."
   },
-  {
-    name: "John Smith",
-    role: "HOA Treasurer",
-    email: "john.smith@gmail.com",
-    phone: "(555) 987-6543",
-    address: "204 Pine Needles Lane",
+  "john.smith@gmail.com": {
+    roleTitle: "HOA Treasurer",
     term: "2025 - 2028",
-    responsibilities: "Financial accounting, dues processing, assessments oversight, accounts payable, and auditing reports.",
-    avatar: "J"
+    responsibilities: "Financial accounting, dues processing, assessments oversight, accounts payable, and auditing reports."
   },
-  {
-    name: "Clara Barton",
-    role: "HOA Secretary / ACC Chairperson",
-    email: "clara.barton@yahoo.com",
-    phone: "(555) 345-6789",
-    address: "305 Red Cross Circle",
+  "clara.barton@yahoo.com": {
+    roleTitle: "HOA Secretary / ACC Chairperson",
     term: "2024 - 2026",
-    responsibilities: "ACC exterior permits oversight, community files database, official meeting minutes, and document archives.",
-    avatar: "C"
+    responsibilities: "ACC exterior permits oversight, community files database, official meeting minutes, and document archives."
   },
-  {
-    name: "Sophie Germain",
-    role: "Infrastructure & Community Safety Lead",
-    email: "sophie.g@math.org",
-    phone: "(555) 765-4321",
-    address: "412 Prime Avenue",
+  "sophie.g@math.org": {
+    roleTitle: "Infrastructure & Safety Lead",
     term: "2025 - 2027",
-    responsibilities: "Common area physical repairs, street lighting oversight, community pool safety, and AI security logs auditing.",
-    avatar: "S"
+    responsibilities: "Common area physical repairs, street lighting oversight, community pool safety, and safety audits."
   }
-];
+};
 
 export default function BoardDirectory({ activeUser, onNavigateToMessages }: BoardDirectoryProps) {
+  const [boardMembers, setBoardMembers] = useState<BoardMemberInfo[]>([]);
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [recipient, setRecipient] = useState("board");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  // Subscribe to real board members in Firestore
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "users"), (snap) => {
+      const members: BoardMemberInfo[] = [];
+      snap.forEach((docSnap) => {
+        const u = docSnap.data() as UserProfile;
+        if (u.role === "board_member") {
+          const rolePreset = DEFAULT_BOARD_ROLES[u.email] || {
+            roleTitle: "Board Director",
+            term: "2025 - 2027",
+            responsibilities: "Community governance, ACC application reviews, bylaws enforcement, and resident hearings."
+          };
+          members.push({
+            id: u.id || docSnap.id,
+            name: u.name || "Board Director",
+            roleTitle: rolePreset.roleTitle,
+            email: u.email || "",
+            phone: u.phone || "(555) 000-0000",
+            address: u.address || "Community Lot",
+            term: rolePreset.term,
+            responsibilities: rolePreset.responsibilities,
+            avatar: (u.name || "B")[0].toUpperCase()
+          });
+        }
+      });
+      setBoardMembers(members);
+    });
+    return unsub;
+  }, []);
 
   // Send a private board message
   const handleContactSubmit = async (e: React.FormEvent) => {
@@ -69,19 +92,19 @@ export default function BoardDirectory({ activeUser, onNavigateToMessages }: Boa
     try {
       setLoading(true);
 
-      // Create a unique message ID
+      // Unique message ID and consistent thread ID
       const messageId = `msg_${Date.now()}`;
-      const threadId = activeUser.role === "board_member" ? "user_john" : activeUser.id; // board replies to john in demo
+      const threadId = activeUser.id;
 
-      // Pre-seed the thread first to ensure it appears in lists
+      // Pre-seed or update the resident's conversation thread
       await setDoc(doc(db, "messageThreads", threadId), {
         id: threadId,
-        residentId: threadId,
-        residentName: activeUser.role === "board_member" ? "John Smith" : activeUser.name,
-        residentAddress: activeUser.role === "board_member" ? "204 Pine Needles Lane" : activeUser.address,
+        residentId: activeUser.id,
+        residentName: activeUser.name,
+        residentAddress: activeUser.address,
         lastUpdated: new Date().toISOString(),
         lastMessageSnippet: message.trim()
-      });
+      }, { merge: true });
 
       // Write private message entry to Firestore
       await addDoc(collection(db, "secureMessages"), {
@@ -120,41 +143,48 @@ export default function BoardDirectory({ activeUser, onNavigateToMessages }: Boa
 
       {/* Directory Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6" id="board-cards-grid">
-        {BOARD_MEMBERS.map((b) => (
-          <div key={b.name} className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs space-y-4 hover:shadow-sm transition-all duration-150">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-slate-900 text-white font-black flex items-center justify-center text-lg shadow-sm">
-                {b.avatar}
-              </div>
-              <div className="space-y-0.5 flex-1">
-                <h3 className="font-extrabold text-slate-950 text-sm leading-tight flex items-center justify-between">
-                  {b.name}
-                  {activeUser.name === b.name && (
-                    <span className="text-[9px] bg-emerald-50 text-emerald-700 border border-emerald-100 px-1.5 py-0.5 rounded uppercase font-black">Logged In</span>
-                  )}
-                </h3>
-                <p className="text-xs text-blue-600 font-bold">{b.role}</p>
-                <p className="text-[10px] text-slate-400 font-bold flex items-center gap-1 mt-0.5">
-                  <Calendar className="w-3.5 h-3.5" /> Term Period: {b.term}
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-2 border-t border-slate-100 pt-3 text-xs text-slate-600 font-medium">
-              <p className="leading-relaxed"><strong>Core Responsibilities:</strong> {b.responsibilities}</p>
-              <div className="grid grid-cols-2 gap-2 pt-1 font-mono text-[11px] text-slate-500">
-                <div className="flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="truncate">{b.email}</span>
-                </div>
-                <div className="flex items-center gap-1.5 justify-end">
-                  <Phone className="w-3.5 h-3.5 text-slate-400" />
-                  <span>{b.phone}</span>
-                </div>
-              </div>
-            </div>
+        {boardMembers.length === 0 ? (
+          <div className="col-span-2 bg-white border border-slate-200 p-8 rounded-2xl text-center">
+            <Shield className="w-8 h-8 text-blue-500 mx-auto mb-2 animate-pulse" />
+            <p className="text-xs font-bold text-slate-700">Connecting to Board Directory...</p>
           </div>
-        ))}
+        ) : (
+          boardMembers.map((b) => (
+            <div key={b.id || b.name} className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs space-y-4 hover:shadow-sm transition-all duration-150">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-slate-900 text-white font-black flex items-center justify-center text-lg shadow-sm">
+                  {b.avatar}
+                </div>
+                <div className="space-y-0.5 flex-1">
+                  <h3 className="font-extrabold text-slate-950 text-sm leading-tight flex items-center justify-between">
+                    {b.name}
+                    {activeUser.id === b.id && (
+                      <span className="text-[9px] bg-emerald-50 text-emerald-700 border border-emerald-100 px-1.5 py-0.5 rounded uppercase font-black">Logged In</span>
+                    )}
+                  </h3>
+                  <p className="text-xs text-blue-600 font-bold">{b.roleTitle}</p>
+                  <p className="text-[10px] text-slate-400 font-bold flex items-center gap-1 mt-0.5">
+                    <Calendar className="w-3.5 h-3.5" /> Term Period: {b.term}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2 border-t border-slate-100 pt-3 text-xs text-slate-600 font-medium">
+                <p className="leading-relaxed"><strong>Core Responsibilities:</strong> {b.responsibilities}</p>
+                <div className="grid grid-cols-2 gap-2 pt-1 font-mono text-[11px] text-slate-500">
+                  <div className="flex items-center gap-1.5">
+                    <Mail className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="truncate">{b.email}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 justify-end">
+                    <Phone className="w-3.5 h-3.5 text-slate-400" />
+                    <span>{b.phone}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Contact Form Bento Row */}
@@ -198,10 +228,11 @@ export default function BoardDirectory({ activeUser, onNavigateToMessages }: Boa
                   className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800"
                 >
                   <option value="board">All HOA Board Directors (Committee Desk)</option>
-                  <option value="Marcus Aurelius">Marcus Aurelius (President)</option>
-                  <option value="John Smith">John Smith (Treasurer)</option>
-                  <option value="Clara Barton">Clara Barton (ACC Chair)</option>
-                  <option value="Sophie Germain">Sophie Germain (Safety Lead)</option>
+                  {boardMembers.map((bm) => (
+                    <option key={bm.id} value={bm.name}>
+                      {bm.name} ({bm.roleTitle})
+                    </option>
+                  ))}
                 </select>
               </div>
 

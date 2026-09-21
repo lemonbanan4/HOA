@@ -20,6 +20,12 @@ export interface Due {
   paidDate?: string;
   status: "unpaid" | "paid" | "overdue";
   description: string;
+  paymentMethod?: "ach" | "card" | "check";
+  transactionId?: string;
+  receiptNumber?: string;
+  checkNumber?: string;
+  bankName?: string;
+  notes?: string;
 }
 
 export interface Violation {

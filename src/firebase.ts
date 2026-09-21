@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { initializeFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 // Read configuration from the auto-provisioned configuration parameters
 const firebaseConfig = {
@@ -14,6 +15,9 @@ const firebaseConfig = {
 
 // Initialize Firebase App
 const app = initializeApp(firebaseConfig);
+
+// Initialize Firebase Authentication
+export const auth = getAuth(app);
 
 // Initialize Firestore with the custom database ID provisioned by the AI Studio environment
 export const db = initializeFirestore(app, {}, firebaseConfig.firestoreDatabaseId);
@@ -45,15 +49,19 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const currentUser = auth.currentUser;
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
-      userId: null,
-      email: null,
-      emailVerified: null,
-      isAnonymous: null,
-      tenantId: null,
-      providerInfo: []
+      userId: currentUser?.uid || null,
+      email: currentUser?.email || null,
+      emailVerified: currentUser?.emailVerified || null,
+      isAnonymous: currentUser?.isAnonymous || null,
+      tenantId: currentUser?.tenantId || null,
+      providerInfo: currentUser?.providerData?.map(p => ({
+        providerId: p.providerId,
+        email: p.email
+      })) || []
     },
     operationType,
     path

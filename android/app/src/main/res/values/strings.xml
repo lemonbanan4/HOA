@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">HOA Tracker</string>
-    <string name="title_activity_main">HOA Tracker</string>
-    <string name="package_name">com.hoatracker.app</string>
-    <string name="custom_url_scheme">com.hoatracker.app</string>
+    <string name="app_name">BoardVault</string>
+    <string name="title_activity_main">BoardVault</string>
+    <string name="package_name">com.cogcore.boardvault</string>
+    <string name="custom_url_scheme">com.cogcore.boardvault</string>
 </resources>

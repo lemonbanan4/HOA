@@ -1,9 +1,127 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Permit read and write access for all developers during testing and app preview
-    match /{document=**} {
+
+    // Helper functions for schema validation and string bounds
+    function isNonEmptyString(str, maxLen) {
+      return str is string && str.size() > 0 && str.size() <= maxLen;
+    }
+
+    function isPositiveNumber(num) {
+      return num is number && num >= 0;
+    }
+
+    // 1. Users collection: Resident & Board directory
+    match /users/{userId} {
+      allow read: if true;
+      allow create, update: if isNonEmptyString(request.resource.data.name, 100)
+                            && isNonEmptyString(request.resource.data.email, 120)
+                            && request.resource.data.role in ['resident', 'board_member']
+                            && request.resource.data.status in ['active', 'pending', 'suspended'];
+      allow delete: if false; // User accounts cannot be arbitrarily deleted
+    }
+
+    // 2. Dues collection: Assessment tracking
+    match /dues/{dueId} {
+      allow read: if true;
+      allow create, update: if isNonEmptyString(request.resource.data.residentId, 100)
+                            && isPositiveNumber(request.resource.data.amount)
+                            && request.resource.data.status in ['unpaid', 'paid', 'overdue']
+                            && isNonEmptyString(request.resource.data.description, 250);
+      allow delete: if false;
+    }
+
+    // 3. Violations collection
+    match /violations/{violationId} {
+      allow read: if true;
+      allow create, update: if isNonEmptyString(request.resource.data.residentId, 100)
+                            && isNonEmptyString(request.resource.data.title, 150)
+                            && request.resource.data.status in ['reported', 'under_review', 'fine_issued', 'resolved']
+                            && isPositiveNumber(request.resource.data.fineAmount);
+      allow delete: if false;
+    }
+
+    // 4. ACC Requests & Work Orders
+    match /accRequests/{requestId} {
+      allow read: if true;
+      allow create, update: if isNonEmptyString(request.resource.data.residentId, 100)
+                            && isNonEmptyString(request.resource.data.description, 1000)
+                            && request.resource.data.status in ['pending', 'approved', 'rejected'];
+      allow delete: if false;
+    }
+
+    match /workOrders/{orderId} {
+      allow read: if true;
+      allow create, update: if isNonEmptyString(request.resource.data.title, 150)
+                            && isNonEmptyString(request.resource.data.description, 1000)
+                            && request.resource.data.status in ['submitted', 'in_progress', 'completed'];
+      allow delete: if false;
+    }
+
+    // 5. Amenity Bookings
+    match /amenityBookings/{bookingId} {
+      allow read: if true;
+      allow create, update: if isNonEmptyString(request.resource.data.residentId, 100)
+                            && request.resource.data.amenityName in ['Clubhouse', 'Community Pavilion', 'Pool Lounge', 'Tennis Court']
+                            && request.resource.data.status in ['confirmed', 'cancelled'];
+      allow delete: if false;
+    }
+
+    // 6. Community Forum & Communications
+    match /communications/{commId} {
+      allow read: if true;
+      allow create, update: if isNonEmptyString(request.resource.data.authorId, 100)
+                            && isNonEmptyString(request.resource.data.title, 150)
+                            && isNonEmptyString(request.resource.data.content, 2000)
+                            && request.resource.data.type in ['announcement', 'discussion'];
+      allow delete: if false;
+    }
+
+    // 7. Official Document Library / Vault
+    match /documents/{docId} {
+      allow read: if true;
+      allow create, update: if isNonEmptyString(request.resource.data.title, 150)
+                            && request.resource.data.category in ['bylaws', 'financials', 'meeting_minutes', 'guidelines'];
+      allow delete: if false;
+    }
+
+    // 8. Secure Messages & Message Threads
+    match /messageThreads/{threadId} {
       allow read, write: if true;
+    }
+
+    match /secureMessages/{messageId} {
+      allow read, write: if isNonEmptyString(request.resource.data.threadId, 100)
+                         && isNonEmptyString(request.resource.data.content, 2000);
+    }
+
+    // 9. Financial Ledger: Expenses & Budgets
+    match /expenses/{expenseId} {
+      allow read: if true;
+      allow create, update: if isPositiveNumber(request.resource.data.amount)
+                            && isNonEmptyString(request.resource.data.category, 100);
+      allow delete: if false;
+    }
+
+    match /budgets/{budgetId} {
+      allow read: if true;
+      allow create, update: if isPositiveNumber(request.resource.data.allocated)
+                            && isNonEmptyString(request.resource.data.category, 100);
+      allow delete: if false;
+    }
+
+    // 10. Behavioral Logs & Security Audits
+    match /behavioralLogs/{logId} {
+      allow read: if true;
+      allow create, update: if isNonEmptyString(request.resource.data.submittedBy, 100)
+                            && isNonEmptyString(request.resource.data.description, 2000);
+      allow delete: if false;
+    }
+
+    match /communicationAudits/{auditId} {
+      allow read: if true;
+      allow create: if isNonEmptyString(request.resource.data.overallSentiment, 50);
+      allow update, delete: if false;
     }
   }
 }

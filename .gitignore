@@ -1,11 +1,40 @@
+# Dependencies
 node_modules/
+.pnp
+.pnp.js
+
+# Production build outputs
 build/
 dist/
 coverage/
+
+# OS & IDE
 .DS_Store
+*.pem
 *.log
-.env*
-!.env.example
 .vscode/
 .antigravity/
 .agents/
+
+# Environment Variables & Secrets (CRITICAL: Never commit these)
+.env
+.env.*
+!.env.example
+
+# Firebase cache
+.firebase/
+
+# Android signing, keystores, and credentials
+*.jks
+*.keystore
+android/keystore.properties
+android/local.properties
+android/app/google-services.json
+android/app/build/
+android/.gradle/
+
+# iOS credentials & outputs
+GoogleService-Info.plist
+ios/App/App/capacitor.config.json
+ios/App/App/public/
+
